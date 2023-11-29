@@ -50,9 +50,9 @@ def welcome():
     )
 
 
-#@app.route("/api/v1.0/precipitation")
-#def names():
-    # Create our session (link) from Python to the DB
+@app.route("/api/v1.0/precipitation")
+def names():
+     #Create our session (link) from Python to the DB
     #session = Session(engine)
 
     #"""Return a list of all passenger names"""
