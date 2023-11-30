@@ -44,8 +44,8 @@ def welcome():
         f"/api/v1.0/precipitation<br/>"
         f"/api/v1.0/stations<br/>"
         f"/api/v1.0/tobs<br/>"
-        f"/api/v1.0/startdate<br/>----- (yyyy-mm-dd) will give average temperatures from date until the end of dataset<br/>"
-        f"/api/v1.0/startdate/enddate<br/>----- (yyyy-mm-dd) will give average temperatures between dates<br/>"
+        f"/api/v1.0/startdate<br/>----- (yyyymmdd) will give average temperatures from date until the end of dataset<br/>"
+        f"/api/v1.0/startdate/enddate<br/>----- (yyyymmdd) will give average temperatures between dates<br/>"
     )
 
 #Static
@@ -110,43 +110,52 @@ def tobs():
     return jsonify(all_tobs)
 
 #Dynamic
-# https://stackoverflow.com/questions/11830980/sqlalchemy-simple-example-of-sum-average-min-max
+# https://www.geeksforgeeks.org/python-sqlalchemy-group_by-and-return-max-date/
 
 @app.route("/api/v1.0/<start_date>")
 def get_start_date(start_date):
     """Get MIN, MAX, and AVG temperatures
        from dataset from the start date until the end"""
+    
+    formatted_date = dt.datetime.strptime(start_date, '%Y%m%d')
 
     session = Session(engine)
 
-    qry = session.query(func.min(Measurement.tobs).label("min_temp"), 
-                    func.max(Measurement.tobs).label("max_temp"),
-                    func.avg(Measurement.tobs).label("avg_temp")
-                    ).filter(Measurement.date > start_date)
-    qry = qry.group_by(Measurement.tobs)
+    query = sqlalchemy.select([ 
+        sqlalchemy.func.min(Measurement.tobs), 
+        sqlalchemy.func.max(Measurement.tobs),
+        sqlalchemy.func.avg(Measurement.tobs)
+        ]).where(Measurement.date > formatted_date) 
 
+
+    result = engine.execute(query).fetchall() 
     session.close()
 
-    temps = list(np.ravel(qry))
+    temps = list(np.ravel(result))
 
     return jsonify(temps)
 
 @app.route("/api/v1.0/<start_date>/<end_date>")
-def get_start_date(start_date, end_date):
+def get_start_end_date(start_date, end_date):
     """Get MIN, MAX, and AVG temperatures
        from dataset from the start date until the end date"""
 
+    formatted_start = dt.datetime.strptime(start_date, '%Y%m%d')
+    formatted_end = dt.datetime.strptime(end_date, '%Y%m%d')
+
     session = Session(engine)
 
-    qry = session.query(func.min(Measurement.tobs).label("min_temp"), 
-                    func.max(Measurement.tobs).label("max_temp"),
-                    func.avg(Measurement.tobs).label("avg_temp")
-                    ).filter(Measurement.date > start_date).filter(Measurement.date < end_date)
-    qry = qry.group_by(Measurement.tobs)
+    query = sqlalchemy.select([ 
+        sqlalchemy.func.min(Measurement.tobs), 
+        sqlalchemy.func.max(Measurement.tobs),
+        sqlalchemy.func.avg(Measurement.tobs)
+        ]).where(Measurement.date > formatted_start).where(Measurement.date > formatted_start)
+
+    result = engine.execute(query).fetchall() 
 
     session.close()
 
-    temps = list(np.ravel(qry))
+    temps = list(np.ravel(result))
 
     return jsonify(temps)
 
